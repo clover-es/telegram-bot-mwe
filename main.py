@@ -1,6 +1,8 @@
 import signal
 import logging
 import asyncio
+from os import environ
+
 import websockets
 
 import telegram.error
@@ -9,11 +11,15 @@ from telegram.ext import ApplicationBuilder, ContextTypes, filters, MessageHandl
 from web3 import AsyncWeb3, WebsocketProviderV2
 
 CHAT_ID = ""
+CHAT_ID = environ.get("CHAT_ID", CHAT_ID)
 TOKEN = ""
-WSS_URL = ""
+TOKEN = environ.get("BOT_TOKEN", TOKEN)
+WSS_URL = "wss://eth.drpc.org"
+WSS_URL = environ.get("WSS_URL", WSS_URL)
 
 logger = logging.getLogger(__name__)
 c_handler = logging.StreamHandler()
+c_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(name)s - %(message)s'))
 logger.addHandler(c_handler)
 logger.setLevel(logging.DEBUG)
 
@@ -53,7 +59,7 @@ async def create_subscription(event_type, event_params):
             except (websockets.ConnectionClosed, websockets.ConnectionClosedError) as e:
                 logger.debug(f"Connection closed: {e}. Reconnecting...")
                 await asyncio.sleep(5)  # Wait for 5 seconds before reconnecting
-            except Exception as e:
+            except Exception as e:  # Catch all other exceptions, including asyncio.CancelledError
                 logger.debug(e)
 
 
