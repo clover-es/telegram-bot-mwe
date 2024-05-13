@@ -56,7 +56,7 @@ async def create_subscription(event_type, event_params):
                     if exit:
                         await w3_socket.eth.unsubscribe(subscription_id)
                         break
-            except (websockets.ConnectionClosed, websockets.ConnectionClosedError) as e:
+            except (websockets.exceptions.ConnectionClosed, websockets.exceptions.ConnectionClosedError) as e:
                 logger.debug(f"Connection closed: {e}. Reconnecting...")
                 await asyncio.sleep(5)  # Wait for 5 seconds before reconnecting
             except Exception as e:  # Catch all other exceptions, including asyncio.CancelledError
