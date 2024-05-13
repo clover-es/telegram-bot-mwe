@@ -59,7 +59,9 @@ async def create_subscription(event_type, event_params):
             except (websockets.exceptions.ConnectionClosed, websockets.exceptions.ConnectionClosedError) as e:
                 logger.debug(f"Connection closed: {e}. Reconnecting...")
                 await asyncio.sleep(5)  # Wait for 5 seconds before reconnecting
-            except Exception as e:  # Catch all other exceptions, including asyncio.CancelledError
+            # asyncio.CancelledError is not a subclass of Exception starting Py3.8, see https://docs.python.org/3.11/library/asyncio-exceptions.html#asyncio.CancelledError
+            # Note that there might be more elecant solutions than to simply catch all BaseExceptions, but I would see this rather as a question on the websocket handling, nothing PTB related
+            except BaseException as e:  # Catch all other exceptions, including asyncio.CancelledError
                 logger.debug(e)
 
 
@@ -84,13 +86,16 @@ async def run():
     subs_tasks.add(
         application.create_task(create_subscription('logs', {'address': '0x12d6867fa648d269835cf69b49f125147754b54d'})))
 
-    await asyncio.gather(*subs_tasks, return_exceptions=True)
-
-    await asend_message("Stopping...")
-    await application.updater.stop()
-    await application.stop()
-    await application.shutdown()
-    await asend_message("Stopped.")
+    try:
+        await asyncio.gather(*subs_tasks, return_exceptions=True)
+    finally:
+        # Ensure that gracefull shutdown is always called
+        await asend_message("Stopping...")
+        await application.updater.stop()
+        await application.stop()
+        await application.shutdown()
+        # after shutdown, the networking backend is no longer available to make requests to TG
+        logger.info("Stopped.")
 
 
 if __name__ == "__main__":
